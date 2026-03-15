@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0f1a">
+<title>Ludo — Tratamiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg:      #0f0f1a;
+  --bg2:     #1a1a2e;
+  --surface: #1e1e35;
+  --border:  rgba(255,255,255,0.08);
+  --text:    #f0ede8;
+  --muted:   #8b8ba0;
+  --accent:  #e8a87c;
+  --accent2: #7ec8c8;
+  --green:   #6fcf97;
+  --red:     #eb5757;
+  --serif:   'DM Serif Display', serif;
+  --sans:    'DM Sans', sans-serif;
+  --r:       14px;
+  --r-lg:    20px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100dvh; }
+
+/* ── login ── */
+#login {
+  min-height: 100dvh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 2rem 1.5rem; gap: 1.5rem;
+}
+#login h1 { font-family: var(--serif); font-size: 2.2rem; color: var(--accent); text-align: center; }
+#login p  { color: var(--muted); font-size: 0.9rem; text-align: center; line-height: 1.6; max-width: 300px; }
+.login-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--r-lg); padding: 2rem 1.5rem;
+  display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+  width: 100%; max-width: 340px;
+}
+.login-card .sub { font-size: 0.82rem; color: var(--muted); text-align: center; line-height: 1.5; }
+#g-btn-wrap { display: flex; justify-content: center; }
+
+/* ── cfg modal (sheet id) ── */
+#cfg-modal {
+  display: none; position: absolute; inset: 0; min-height: 100dvh;
+  background: rgba(0,0,0,0.75); align-items: flex-end; justify-content: center; z-index: 200;
+}
+#cfg-modal.open { display: flex; }
+.cfg-sheet {
+  background: var(--bg2); border-radius: var(--r-lg) var(--r-lg) 0 0;
+  border: 0.5px solid var(--border); padding: 1.5rem;
+  width: 100%; max-width: 480px;
+}
+.cfg-sheet h3 { font-family: var(--serif); font-size: 1.2rem; color: var(--accent); margin-bottom: 0.25rem; }
+.cfg-sheet p  { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.5; }
+.cfg-sheet label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+.cfg-sheet input {
+  width: 100%; background: var(--bg); border: 0.5px solid var(--border);
+  border-radius: var(--r); color: var(--text); font-family: var(--sans);
+  font-size: 0.85rem; padding: 0.7rem 0.875rem; outline: none; margin-bottom: 0.75rem;
+}
+.cfg-sheet input:focus { border-color: var(--accent); }
+.cfg-hint { font-size: 0.75rem; color: var(--muted); line-height: 1.5; margin-bottom: 1rem; }
+.cfg-hint a { color: var(--accent2); }
+.btn-primary {
+  width: 100%; background: var(--accent); color: #1a0a00;
+  font-family: var(--sans); font-weight: 500; font-size: 1rem;
+  border: none; border-radius: var(--r); padding: 0.875rem; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+
+/* ── app shell ── */
+#app { display: none; flex-direction: column; min-height: 100dvh; }
+
+.header {
+  background: var(--bg2); border-bottom: 0.5px solid var(--border);
+  padding: 1rem 1.25rem 0.875rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.header-left h2 { font-family: var(--serif); font-size: 1.4rem; color: var(--accent); }
+.header-left p  { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.header-right   { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+  border: 1.5px solid var(--border);
+}
+.avatar-fallback {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface); border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; color: var(--muted);
+}
+.sync-btn {
+  background: none; border: 0.5px solid var(--border); border-radius: 8px;
+  color: var(--muted); font-family: var(--sans); font-size: 0.72rem;
+  padding: 0.35rem 0.65rem; cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.spin { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.8s linear infinite; }
+
+.nav { background: var(--bg2); border-bottom: 0.5px solid var(--border); display: flex; }
+.nav-tab {
+  flex: 1; padding: 0.7rem 0.5rem; font-size: 0.72rem; color: var(--muted);
+  border: none; background: none; cursor: pointer; font-family: var(--sans);
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.nav-tab .ti { font-size: 1rem; }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.view { display: none; flex: 1; overflow-y: auto; padding: 1rem 1rem 5rem; }
+.view.active { display: block; }
+
+/* ── cards ── */
+.next-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.25rem; margin-bottom: 1rem;
+}
+.next-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.4rem; }
+.next-med   { font-family: var(--serif); font-size: 1.5rem; color: var(--text); }
+.next-dose  { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+.countdown  { font-size: 2.2rem; font-weight: 300; color: var(--accent); margin-top: 0.75rem; font-variant-numeric: tabular-nums; }
+.countdown-label { font-size: 0.72rem; color: var(--muted); }
+.next-time  { font-size: 0.78rem; color: var(--accent2); margin-top: 3px; }
+
+.section-head { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 1.25rem 0 0.6rem; }
+
+.dose-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--r); padding: 1rem; margin-bottom: 0.6rem;
+  display: flex; align-items: center; gap: 0.875rem; transition: opacity 0.3s;
+}
+.dose-card.done { opacity: 0.45; }
+.dose-card.done .dose-name { text-decoration: line-through; }
+.dose-time-col { text-align: center; min-width: 42px; }
+.dose-time { font-size: 1rem; font-weight: 500; color: var(--accent); font-variant-numeric: tabular-nums; }
+.dose-date { font-size: 0.62rem; color: var(--muted); }
+.dose-info { flex: 1; min-width: 0; }
+.dose-name   { font-size: 0.92rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dose-amount { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.dose-type-pill { display: inline-block; font-size: 0.62rem; padding: 2px 7px; border-radius: 20px; margin-top: 3px; white-space: nowrap; }
+.dose-action { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 50px; }
+.check-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; transition: all 0.2s; color: var(--muted);
+}
+.check-btn.done { background: var(--green); border-color: var(--green); color: #0a2a18; }
+.check-btn:active { transform: scale(0.88); }
+.who-tag { font-size: 0.58rem; color: var(--muted); text-align: center; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pill-ab   { background: rgba(232,168,124,0.15); color: #e8a87c; }
+.pill-prot { background: rgba(111,207,151,0.15); color: #6fcf97; }
+.pill-ai   { background: rgba(242,201,76,0.15);  color: #f2c94c; }
+.pill-prob { background: rgba(126,200,200,0.15); color: #7ec8c8; }
+.pill-cor  { background: rgba(187,134,252,0.15); color: #bb86fc; }
+.pill-gas  { background: rgba(255,152,0,0.15);   color: #ff9800; }
+
+/* ── who modal ── */
+.modal-bg {
+  position: absolute; inset: 0; min-height: 100dvh;
+  background: rgba(0,0,0,0.72); display: flex; align-items: flex-end; justify-content: center; z-index: 100;
+}
+.modal-sheet {
+  background: var(--bg2); border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 1.5rem; width: 100%; max-width: 480px; border: 0.5px solid var(--border);
+}
+.modal-title { font-family: var(--serif); font-size: 1.2rem; color: var(--accent); margin-bottom: 0.3rem; }
+.modal-sub   { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; }
+.who-options { display: flex; gap: 0.75rem; }
+.who-btn {
+  flex: 1; padding: 1rem; background: var(--surface);
+  border: 0.5px solid var(--border); border-radius: var(--r);
+  color: var(--text); font-family: var(--sans); font-size: 1rem;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.who-btn:active { transform: scale(0.96); }
+.cancel-btn {
+  width: 100%; margin-top: 0.75rem; padding: 0.875rem;
+  background: none; border: none; color: var(--muted);
+  font-family: var(--sans); font-size: 0.9rem; cursor: pointer;
+}
+
+/* ── dashboard ── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+.stat-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 1rem; }
+.stat-val   { font-size: 2rem; font-weight: 300; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+.stat-card.green .stat-val { color: var(--green); }
+.stat-card.amber .stat-val { color: var(--accent); }
+.progress-bar-bg { background: var(--surface); border-radius: 8px; height: 8px; overflow: hidden; margin: 0.5rem 0 0.25rem; }
+.progress-bar-fill { height: 100%; background: var(--green); border-radius: 8px; transition: width 0.6s ease; }
+.progress-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 1rem; }
+.med-row {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--r); padding: 0.875rem 1rem; margin-bottom: 0.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.med-row-name { font-size: 0.88rem; font-weight: 500; }
+.med-row-days { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.med-row-frac { font-size: 1rem; font-weight: 500; color: var(--accent); text-align: right; }
+.med-row-pct  { font-size: 0.7rem; color: var(--muted); }
+.mini-prog { width: 60px; height: 4px; background: var(--bg2); border-radius: 4px; margin-top: 4px; overflow: hidden; margin-left: auto; }
+.mini-prog-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.5s; }
+
+/* ── settings ── */
+.settings-section { margin-bottom: 1.5rem; }
+.settings-section h3 { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem; }
+.settings-item { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 0.875rem 1rem; margin-bottom: 0.5rem; }
+.settings-item label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 4px; }
+.settings-item input {
+  width: 100%; background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: var(--sans);
+  font-size: 0.82rem; padding: 0.6rem 0.875rem; outline: none; margin-top: 2px;
+}
+.settings-item input:focus { border-color: var(--accent); }
+.save-btn {
+  width: 100%; background: var(--accent); color: #1a0a00;
+  font-family: var(--sans); font-weight: 500; font-size: 0.95rem;
+  border: none; border-radius: var(--r); padding: 0.875rem; cursor: pointer; margin-top: 0.25rem;
+}
+.info-box {
+  background: rgba(126,200,200,0.08); border: 0.5px solid rgba(126,200,200,0.2);
+  border-radius: var(--r); padding: 0.875rem 1rem;
+  font-size: 0.8rem; color: var(--accent2); line-height: 1.6;
+}
+.danger-btn {
+  background: none; border: 0.5px solid var(--red); border-radius: 8px;
+  color: var(--red); font-family: var(--sans); font-size: 0.78rem;
+  padding: 0.4rem 0.75rem; cursor: pointer;
+}
+
+/* ── states ── */
+.loading-state, .error-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 3rem 1.5rem; text-align: center; gap: 0.75rem;
+}
+.loading-state p, .error-state p { color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+.loader { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.retry-btn { background: none; border: 0.5px solid var(--border); border-radius: var(--r); color: var(--text); font-family: var(--sans); font-size: 0.82rem; padding: 0.6rem 1.25rem; cursor: pointer; margin-top: 0.5rem; }
+.empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login">
+  <div style="font-size:3rem">🐾</div>
+  <h1>Ludo</h1>
+  <p>Tratamiento médico</p>
+  <div class="login-card">
+    <p class="sub">Iniciá sesión con tu cuenta de Google para acceder al cronograma de medicación.</p>
+    <div id="g-btn-wrap"></div>
+    <p class="sub" style="font-size:0.72rem">Solo vos y tu pareja pueden acceder.</p>
+  </div>
+</div>
+
+<!-- ══ CFG MODAL (Sheet ID) ══ -->
+<div id="cfg-modal">
+  <div class="cfg-sheet">
+    <h3>Un paso más</h3>
+    <p>Necesitamos el ID de tu Google Sheet para leer el cronograma de Ludo.</p>
+    <label>ID del Google Sheet</label>
+    <input type="text" id="cfg-sheet-input" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" spellcheck="false" autocomplete="off"/>
+    <p class="cfg-hint">Lo encontrás en la URL de tu Sheets:<br>
+      docs.google.com/spreadsheets/d/<strong style="color:var(--accent)">ESTE_ID</strong>/edit
+    </p>
+    <label>Nombre — Persona 1</label>
+    <input type="text" id="cfg-p1-input" placeholder="Mamá" />
+    <label>Nombre — Persona 2</label>
+    <input type="text" id="cfg-p2-input" placeholder="Papá" />
+    <button class="btn-primary" onclick="saveCfgModal()">Guardar y abrir</button>
+    <div id="cfg-error" style="display:none;color:var(--red);font-size:0.8rem;text-align:center;margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <h2>🐾 Ludo</h2>
+      <p id="header-date"></p>
+    </div>
+    <div class="header-right">
+      <button class="sync-btn" onclick="syncData()"><span class="spin" id="sync-icon">↻</span> Sync</button>
+      <div id="user-avatar"></div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-tab active" onclick="showTab('today')" id="tab-today"><span class="ti">💊</span>Hoy</button>
+    <button class="nav-tab" onclick="showTab('all')"     id="tab-all"><span class="ti">📋</span>Todo</button>
+    <button class="nav-tab" onclick="showTab('dash')"    id="tab-dash"><span class="ti">📊</span>Avance</button>
+    <button class="nav-tab" onclick="showTab('settings')" id="tab-settings"><span class="ti">⚙️</span>Config</button>
+  </div>
+
+  <div class="view active" id="view-today"><div id="today-content"></div></div>
+  <div class="view"        id="view-all"><div id="all-content"></div></div>
+  <div class="view"        id="view-dash"><div id="dash-content"></div></div>
+  <div class="view"        id="view-settings">
+    <div class="settings-section">
+      <h3>Google Sheet</h3>
+      <div class="settings-item">
+        <label>ID del Sheet</label>
+        <input type="text" id="cfg-sheet-id" />
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Personas</h3>
+      <div class="settings-item">
+        <label>Persona 1</label>
+        <input type="text" id="cfg-p1" />
+      </div>
+      <div class="settings-item">
+        <label>Persona 2</label>
+        <input type="text" id="cfg-p2" />
+      </div>
+      <button class="save-btn" onclick="saveConfig()">Guardar cambios</button>
+    </div>
+    <div class="settings-section">
+      <h3>Recordatorios — Bot de Telegram</h3>
+      <div class="info-box">
+        1. Abrí Telegram → buscá <strong>@BotFather</strong> → /newbot → copiá el token<br>
+        2. Buscá <strong>@userinfobot</strong> → copiá tu Chat ID<br>
+        3. Usá Zapier (gratis): Google Calendar → Send Telegram Message<br>
+        4. O pedile a Claude que genere el script Python ↗
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Sesión</h3>
+      <div class="settings-item" style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.85rem">Cerrar sesión</span>
+        <button class="danger-btn" onclick="signOut()">Salir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHO MODAL -->
+<div id="who-modal" style="display:none">
+  <div class="modal-bg" onclick="closeModal()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <p class="modal-title" id="modal-med-name"></p>
+      <p class="modal-sub"   id="modal-med-dose"></p>
+      <div class="who-options">
+        <button class="who-btn" id="who-btn-1" onclick="markDone(1)"></button>
+        <button class="who-btn" id="who-btn-2" onclick="markDone(2)"></button>
+      </div>
+      <button class="cancel-btn" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID  = '128203442896-mlk5nufs0noose6q6eitn207r3q5a2j0.apps.googleusercontent.com';
+const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets';
+const SHEET_NAME = 'CRONOGRAMA';
+const DATA_START = 4;
+const COL = { DATE:0, TIME:1, MED:2, DOSE:3, TYPE:4, STATUS:5, WHO:6 };
+const TYPE_PILL = {
+  'Antibiótico / Antiparasitario': ['AB',   'pill-ab'],
+  'Protector hepático':            ['PROT', 'pill-prot'],
+  'Antiinflamatorio / Analgésico': ['AI',   'pill-ai'],
+  'Probiótico':                    ['PROB', 'pill-prob'],
+  'Corticoide':                    ['COR',  'pill-cor'],
+  'Gastroprotector':               ['GAS',  'pill-gas'],
+};
+
+let tokenClient, accessToken = null;
+let cfg = {}, allDoses = [], pendingRow = null, cdTimer = null;
+
+function loadCfg() {
+  try { cfg = JSON.parse(localStorage.getItem('ludo_cfg') || '{}'); } catch(e) { cfg = {}; }
+}
+function saveCfg() { localStorage.setItem('ludo_cfg', JSON.stringify(cfg)); }
+
+/* ── Google Identity Services ── */
+window.onload = () => {
+  loadCfg();
+
+  // restore token from session if available
+  const saved = sessionStorage.getItem('ludo_token');
+  if (saved) {
+    accessToken = saved;
+    if (cfg.sheetId) bootApp();
+    else showCfgModal();
+    return;
+  }
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { console.error(resp); return; }
+      accessToken = resp.access_token;
+      sessionStorage.setItem('ludo_token', accessToken);
+      // show user info
+      fetchUserInfo();
+      if (cfg.sheetId) bootApp();
+      else showCfgModal();
+    },
+  });
+
+  // render Google Sign-In button
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: (cred) => {
+      // after id sign-in, request token for Sheets
+      tokenClient.requestAccessToken({ prompt: '' });
+    },
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('g-btn-wrap'),
+    { theme: 'filled_black', size: 'large', text: 'signin_with', locale: 'es' }
+  );
+};
+
+async function fetchUserInfo() {
+  if (!accessToken) return;
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const u = await r.json();
+    const av = document.getElementById('user-avatar');
+    if (u.picture) {
+      av.innerHTML = `<img src="${u.picture}" class="avatar" referrerpolicy="no-referrer"/>`;
+    } else {
+      av.innerHTML = `<div class="avatar-fallback">${(u.name||'?')[0]}</div>`;
+    }
+    cfg.userName = u.name || '';
+    saveCfg();
+  } catch(e) {}
+}
+
+function showCfgModal() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('cfg-p1-input').value = cfg.p1 || '';
+  document.getElementById('cfg-p2-input').value = cfg.p2 || '';
+  document.getElementById('cfg-sheet-input').value = cfg.sheetId || '';
+  document.getElementById('cfg-modal').classList.add('open');
+}
+
+function saveCfgModal() {
+  const sid = document.getElementById('cfg-sheet-input').value.trim();
+  const p1  = document.getElementById('cfg-p1-input').value.trim() || 'Persona 1';
+  const p2  = document.getElementById('cfg-p2-input').value.trim() || 'Persona 2';
+  const err = document.getElementById('cfg-error');
+  if (!sid) { err.style.display='block'; err.textContent='Pegá el ID del Sheet.'; return; }
+  err.style.display = 'none';
+  cfg.sheetId = sid; cfg.p1 = p1; cfg.p2 = p2;
+  saveCfg();
+  document.getElementById('cfg-modal').classList.remove('open');
+  bootApp();
+}
+
+function bootApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('cfg-modal').classList.remove('open');
+  document.getElementById('app').style.display   = 'flex';
+  document.getElementById('who-btn-1').textContent = cfg.p1 || 'Persona 1';
+  document.getElementById('who-btn-2').textContent = cfg.p2 || 'Persona 2';
+  document.getElementById('cfg-sheet-id').value   = cfg.sheetId || '';
+  document.getElementById('cfg-p1').value          = cfg.p1 || '';
+  document.getElementById('cfg-p2').value          = cfg.p2 || '';
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('es-BO', { weekday:'long', day:'numeric', month:'long' });
+  fetchUserInfo();
+  syncData();
+}
+
+function saveConfig() {
+  cfg.sheetId = document.getElementById('cfg-sheet-id').value.trim();
+  cfg.p1      = document.getElementById('cfg-p1').value.trim() || 'Persona 1';
+  cfg.p2      = document.getElementById('cfg-p2').value.trim() || 'Persona 2';
+  saveCfg();
+  document.getElementById('who-btn-1').textContent = cfg.p1;
+  document.getElementById('who-btn-2').textContent = cfg.p2;
+  syncData();
+}
+
+function signOut() {
+  google.accounts.id.disableAutoSelect();
+  sessionStorage.removeItem('ludo_token');
+  accessToken = null;
+  location.reload();
+}
+
+/* ── Sheets API ── */
+async function sheetsGet(range) {
+  const r = encodeURIComponent(range);
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${r}`,
+    { headers: { Authorization: 'Bearer ' + accessToken } }
+  );
+  if (res.status === 401) { refreshToken(); throw new Error('Token expirado'); }
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function sheetsPut(range, values) {
+  const r = encodeURIComponent(range);
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${r}?valueInputOption=RAW`,
+    {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values })
+    }
+  );
+  if (res.status === 401) { refreshToken(); throw new Error('Token expirado'); }
+  if (!res.ok) { const b = await res.json().catch(()=>{}); throw new Error(b?.error?.message || 'HTTP '+res.status); }
+}
+
+function refreshToken() {
+  sessionStorage.removeItem('ludo_token');
+  accessToken = null;
+  if (tokenClient) tokenClient.requestAccessToken({ prompt: '' });
+}
+
+async function syncData() {
+  const icon = document.getElementById('sync-icon');
+  icon.classList.add('spinning');
+  try {
+    const data = await sheetsGet(`${SHEET_NAME}!A${DATA_START}:H500`);
+    allDoses = (data.values || []).map((row, i) => ({
+      rowIndex: DATA_START + i,
+      date:   row[COL.DATE]   || '',
+      time:   row[COL.TIME]   || '',
+      med:    row[COL.MED]    || '',
+      dose:   row[COL.DOSE]   || '',
+      type:   row[COL.TYPE]   || '',
+      status: row[COL.STATUS] || '⏳ Pendiente',
+      who:    row[COL.WHO]    || '',
+    })).filter(d => d.med);
+    renderAll();
+  } catch(err) {
+    document.getElementById('today-content').innerHTML = `
+      <div class="error-state">
+        <p>No se pudo conectar.<br><small style="opacity:0.6">${err.message}</small></p>
+        <button class="retry-btn" onclick="syncData()">Reintentar</button>
+      </div>`;
+  } finally {
+    icon.classList.remove('spinning');
+  }
+}
+
+function parseDT(d, t) {
+  const [dd,mm,yy] = d.split('/').map(Number);
+  const [h,mi]     = t.split(':').map(Number);
+  return new Date(yy, mm-1, dd, h, mi);
+}
+function todayStr() {
+  const n = new Date();
+  return `${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')}/${n.getFullYear()}`;
+}
+function isDone(d) { return d.status === '✅ Administrada'; }
+
+function renderAll() { renderToday(); renderAllDoses(); renderDash(); }
+
+function renderToday() {
+  const today   = todayStr();
+  const todayDoses = allDoses.filter(d => d.date === today);
+  const pending    = allDoses.filter(d => !isDone(d));
+  const next       = pending[0] || null;
+  let html = '';
+
+  if (next) {
+    const dt = parseDT(next.date, next.time);
+    html += `<div class="next-card">
+      <div class="next-label">Próxima dosis</div>
+      <div class="next-med">${next.med}</div>
+      <div class="next-dose">${next.dose}</div>
+      <div class="next-time">${next.date === today ? 'Hoy' : next.date} ${next.time}</div>
+      <div class="countdown" id="next-cd">--:--:--</div>
+      <div class="countdown-label">tiempo restante</div>
+    </div>`;
+    startCountdown(dt);
+  } else {
+    html += `<div class="next-card">
+      <div class="next-label">Tratamiento</div>
+      <div class="next-med" style="color:var(--green)">¡Todo al día!</div>
+      <div class="next-dose">No hay dosis pendientes</div>
+    </div>`;
+  }
+
+  if (todayDoses.length) {
+    html += `<div class="section-head">Dosis de hoy</div>`;
+    todayDoses.forEach(d => { html += doseCardHTML(d); });
+  }
+
+  const upcoming = pending.filter(d => d.date !== today).slice(0, 5);
+  if (upcoming.length) {
+    html += `<div class="section-head">Próximas</div>`;
+    upcoming.forEach(d => { html += doseCardHTML(d); });
+  }
+
+  if (!todayDoses.length && !pending.length) {
+    html += `<div class="empty-state">🎉<br>Tratamiento completado.</div>`;
+  }
+  document.getElementById('today-content').innerHTML = html;
+}
+
+function renderAllDoses() {
+  const grouped = {};
+  allDoses.forEach(d => { if (!grouped[d.date]) grouped[d.date]=[]; grouped[d.date].push(d); });
+  let html = '';
+  Object.keys(grouped).sort((a,b)=>{
+    const pa=a.split('/').reverse().join(''), pb=b.split('/').reverse().join('');
+    return pa.localeCompare(pb);
+  }).forEach(date => {
+    html += `<div class="section-head">${date}</div>`;
+    grouped[date].forEach(d => { html += doseCardHTML(d); });
+  });
+  document.getElementById('all-content').innerHTML = html || '<div class="empty-state">Sin datos.</div>';
+}
+
+function renderDash() {
+  const total   = allDoses.length;
+  const done    = allDoses.filter(isDone).length;
+  const pending = total - done;
+  const pct     = total ? Math.round(done/total*100) : 0;
+
+  const meds = {};
+  allDoses.forEach(d => {
+    if (!meds[d.med]) meds[d.med] = { total:0, done:0 };
+    meds[d.med].total++;
+    if (isDone(d)) meds[d.med].done++;
+  });
+
+  let medRows = Object.entries(meds).map(([name, m]) => {
+    const p = m.total ? Math.round(m.done/m.total*100) : 0;
+    return `<div class="med-row">
+      <div><div class="med-row-name">${name}</div><div class="med-row-days">${m.done}/${m.total} dosis</div></div>
+      <div><div class="med-row-frac">${p}%</div><div class="mini-prog"><div class="mini-prog-fill" style="width:${p}%"></div></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dash-content').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">Total</div></div>
+      <div class="stat-card green"><div class="stat-val">${done}</div><div class="stat-label">Dadas</div></div>
+      <div class="stat-card amber"><div class="stat-val">${pending}</div><div class="stat-label">Pendientes</div></div>
+      <div class="stat-card"><div class="stat-val">${pct}%</div><div class="stat-label">Completado</div></div>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    <div class="progress-label">${done} de ${total} dosis administradas</div>
+    <div class="section-head">Por medicamento</div>
+    ${medRows}`;
+}
+
+function doseCardHTML(d) {
+  const done = isDone(d);
+  const [abbr, pillCls] = TYPE_PILL[d.type] || ['','pill-ab'];
+  const esc = s => s.replace(/'/g,"\\'");
+  return `<div class="dose-card ${done?'done':''}" id="card-${d.rowIndex}">
+    <div class="dose-time-col">
+      <div class="dose-time">${d.time}</div>
+      <div class="dose-date">${d.date.slice(0,5)}</div>
+    </div>
+    <div class="dose-info">
+      <div class="dose-name">${d.med}</div>
+      <div class="dose-amount">${d.dose}</div>
+      ${abbr?`<span class="dose-type-pill ${pillCls}">${abbr}</span>`:''}
+    </div>
+    <div class="dose-action">
+      <button class="check-btn ${done?'done':''}" onclick="onCheckTap(${d.rowIndex},'${esc(d.med)}','${esc(d.dose)}')">${done?'✓':'○'}</button>
+      ${done && d.who ? `<div class="who-tag">${d.who}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function onCheckTap(rowIndex, med, dose) {
+  const d = allDoses.find(x => x.rowIndex === rowIndex);
+  if (d && isDone(d)) { unmarkDose(rowIndex); return; }
+  pendingRow = rowIndex;
+  document.getElementById('modal-med-name').textContent = med;
+  document.getElementById('modal-med-dose').textContent = dose + ' — ¿quién la administró?';
+  document.getElementById('who-modal').style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('who-modal').style.display = 'none';
+  pendingRow = null;
+}
+
+async function markDone(personNum) {
+  const who = personNum === 1 ? cfg.p1 : cfg.p2;
+  const row = pendingRow;
+  closeModal();
+  if (!row) return;
+  const d = allDoses.find(x => x.rowIndex === row);
+  if (d) { d.status = '✅ Administrada'; d.who = who; }
+  renderAll();
+  try {
+    await sheetsPut(`${SHEET_NAME}!F${row}:G${row}`, [['✅ Administrada', who]]);
+  } catch(err) {
+    if (d) { d.status = '⏳ Pendiente'; d.who = ''; }
+    renderAll();
+    alert('Error al guardar: ' + err.message);
+  }
+}
+
+async function unmarkDose(rowIndex) {
+  const d = allDoses.find(x => x.rowIndex === rowIndex);
+  if (d) { d.status = '⏳ Pendiente'; d.who = ''; }
+  renderAll();
+  try {
+    await sheetsPut(`${SHEET_NAME}!F${rowIndex}:G${rowIndex}`, [['⏳ Pendiente', '']]);
+  } catch(err) {
+    if (d) { d.status = '✅ Administrada'; }
+    renderAll();
+    alert('Error al guardar: ' + err.message);
+  }
+}
+
+function startCountdown(dt) {
+  if (cdTimer) clearInterval(cdTimer);
+  function tick() {
+    const el = document.getElementById('next-cd');
+    if (!el) { clearInterval(cdTimer); return; }
+    const diff = dt - new Date();
+    if (diff <= 0) { el.textContent = '¡Ahora!'; el.style.color = 'var(--green)'; clearInterval(cdTimer); return; }
+    const h = Math.floor(diff/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick(); cdTimer = setInterval(tick, 1000);
+}
+
+function showTab(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+</script>
+</body>
+</html>
